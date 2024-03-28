@@ -50,7 +50,24 @@ public class DataRecollection : MonoBehaviour
     private InputDevice rEyeDevice;
     private InputDevice lEyeDevice;
 
+    private Eyes eyes;
+
+    [Header("Visualization Transforms")]
+    public Transform fixationPointTransform;
+    public Transform leftEyeTransform;
+    public Transform rightEyeTransform;
+
+    private Vector3 leftEyePosition;
+    private Vector3 rightEyePosition;
+    private Quaternion leftEyeRotation;
+    private Quaternion rightEyeRotation;
+    private Vector3 fixationPoint;
+
     #endregion
+    [SerializeField]
+    public Quaternion rotation = Quaternion.identity;
+    public Vector3 velocity = Vector3.zero;
+
 
 
     private bool devicePositionChosen;
@@ -67,6 +84,8 @@ public class DataRecollection : MonoBehaviour
         InputDevices.GetDevicesAtXRNode(deviceNode, devices); // Modified by NOR
         return devices[0];
     }
+
+
 
     // Checks if the device is enable, if not it takes action and calls the GetDevice function
     void OnEnable()
@@ -142,11 +161,18 @@ public class DataRecollection : MonoBehaviour
         }
     }
 
-    // Gets the pose Data from the XR Devices
-    private Vector3 getXRDeviceData(InputDevice device)
+
+    /// <summary>
+    /// Use :
+    /// CommonUsages.devicePosition for position
+    /// CommonUsages.deviceVelocity for velocity
+    /// 
+    /// </summary>
+    // Gets the position Data from the XR Devices
+    private Vector3 getXRDevicePositionData(InputDevice device, InputFeatureUsage<Vector3> usage)
     {
         // capturing position changes
-        InputFeatureUsage<Vector3> devicePositionsUsage = CommonUsages.devicePosition;
+        InputFeatureUsage<Vector3> Usage = usage;
 
         /// Position
         // make sure the value is not zero and that it has changed
@@ -154,7 +180,7 @@ public class DataRecollection : MonoBehaviour
         {
             devicePositionChosen = false;
         }
-        if (device.TryGetFeatureValue(devicePositionsUsage, out devicePositionValue) && devicePositionValue != Vector3.zero && !devicePositionChosen)
+        if (device.TryGetFeatureValue(Usage, out devicePositionValue) && devicePositionValue != Vector3.zero && !devicePositionChosen)
         {
             prevdevicePositionValue = devicePositionValue;
             devicePositionChosen = true;
@@ -166,6 +192,54 @@ public class DataRecollection : MonoBehaviour
             devicePositionChosen = false;
         }
         return devicePositionValue;
+    }
+
+    // Gets all the information from Eye Tracking
+    private void getETData(InputDevice device)
+    {
+        var EyeControllers = new List<UnityEngine.XR.InputDevice>();
+        var desiredCharacteristics = UnityEngine.XR.InputDeviceCharacteristics.EyeTracking;
+        UnityEngine.XR.InputDevices.GetDevices(EyeControllers);
+        Debug.Log("Eyecontroller size : "+ EyeControllers.Count);
+        foreach (var devices in EyeControllers)
+        {
+            Debug.Log(string.Format("Device name '{0}' has characteristics '{1}' with Subsystem '{2}'", devices.name, devices.characteristics.ToString(),devices.subsystem));
+            if (devices.TryGetFeatureValue(CommonUsages.eyesData, out eyes))
+            {
+                Debug.Log("in 2");
+
+
+                if (eyes.TryGetLeftEyePosition(out leftEyePosition))
+                {
+                    leftEyeTransform.localPosition = leftEyePosition;
+                }
+
+                if (eyes.TryGetLeftEyeRotation(out leftEyeRotation))
+                {
+                    leftEyeTransform.localRotation = leftEyeRotation;
+                }
+
+                if (eyes.TryGetRightEyePosition(out rightEyePosition))
+                {
+                    Debug.Log(rightEyePosition + "transform");
+
+                    rightEyeTransform.localPosition = rightEyePosition;
+                }
+
+                if (eyes.TryGetRightEyeRotation(out rightEyeRotation))
+                {
+                    rightEyeTransform.localRotation = rightEyeRotation;
+                }
+
+                if (eyes.TryGetFixationPoint(out fixationPoint))
+                {
+                    fixationPointTransform.localPosition = fixationPoint;
+                }
+            }
+        }
+
+        Debug.Log("in 1");
+        
     }
 
     // get hand for HandTracking data
@@ -187,18 +261,18 @@ public class DataRecollection : MonoBehaviour
         }
     }
 
-
+    
     // Display Data On Console for Debug
     private void DisplayDataOnConsole()
     {
-        // Head HMD
-        Debug.Log("HeadPos : " + getXRDeviceData(headDevice));
+        //// Head HMD
+        //Debug.Log("HeadPos : " + getXRDevicePositionData(headDevice, CommonUsages.devicePosition));
 
         //// Hands and Controllers
         //if (inputMode == XRInputModalityManager.InputMode.MotionController && rControllerDevice.isValid && lControllerDevice.isValid)
         //{
-        //    Debug.Log("r controller device : " + getXRDeviceData(rControllerDevice));
-        //    Debug.Log("l controller device : " + getXRDeviceData(lControllerDevice));
+        //    Debug.Log("r controller device : " + getXRDevicePositionData(rControllerDevice, CommonUsages.devicePosition));
+        //    Debug.Log("l controller device : " + getXRDevicePositionData(lControllerDevice, CommonUsages.devicePosition));
         //}
         //if (inputMode == XRInputModalityManager.InputMode.TrackedHand)
         //{
@@ -212,13 +286,17 @@ public class DataRecollection : MonoBehaviour
         //    }
         //}
 
-        // Eyes
-        if (rEyeDevice.isValid && lEyeDevice.isValid)
-        {
-            Debug.Log("r eye device : " + getXRDeviceData(rEyeDevice));
-            Debug.Log("l eye device : " + getXRDeviceData(lEyeDevice));
-        }
+        //// Eyes // Fraud -> is only the HMD position (can get eye position with CommonUsages.leftEyePosition but is only compared to center of headset)
+        //if (rEyeDevice.isValid && lEyeDevice.isValid)
+        //{
 
+        //    //Eye position
+        //    Debug.Log("r eye device pos : " + getXRDevicePositionData(rEyeDevice,CommonUsages.centerEyeAcceleration));
+        //    Debug.Log("l eye device pos : " + getXRDevicePositionData(lEyeDevice, CommonUsages.devicePosition));
+        //}
+        
+        getETData(headDevice);
+        getETData(rEyeDevice);
     }
 
 
