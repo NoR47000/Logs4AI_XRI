@@ -132,7 +132,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 154328987}
-  - component: {fileID: 154328986}
+  - component: {fileID: 154328990}
+  - component: {fileID: 154328989}
+  - component: {fileID: 154328988}
   m_Layer: 0
   m_Name: Data Manager
   m_TagString: Untagged
@@ -140,18 +142,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &154328986
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 154328985}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8b05878a6162f542a85aadd85e2541c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!4 &154328987
 Transform:
   m_ObjectHideFlags: 0
@@ -167,6 +157,53 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &154328988
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 154328985}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 445833e43b1ac5f498cc160f7c0526aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  directoryPath: CSVExports
+--- !u!114 &154328989
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 154328985}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e57812e314e34af4690cc4c64ce50c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _leftHandPose:
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0, w: 1}
+  _rightHandPose:
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0, w: 1}
+  _leftHandJointPoses: []
+  _rightHandJointPoses: []
+  _leftIsTracked: 0
+  _rightIsTracked: 0
+--- !u!114 &154328990
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 154328985}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8b05878a6162f542a85aadd85e2541c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -491,6 +528,10 @@ MonoBehaviour:
   _rightHandPose:
     position: {x: 0, y: 0, z: 0}
     rotation: {x: 0, y: 0, z: 0, w: 1}
+  _leftHandJointPoses: []
+  _rightHandJointPoses: []
+  _leftIsTracked: 0
+  _rightIsTracked: 0
 --- !u!114 &461988078
 MonoBehaviour:
   m_ObjectHideFlags: 0

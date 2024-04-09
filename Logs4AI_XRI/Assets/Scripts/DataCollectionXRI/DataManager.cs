@@ -1,128 +1,247 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Unity.VisualScripting;
+using Unity.XR.CoreUtils;
 using UnityEngine;
-using UnityEngine.InputSystem.XInput;
 using UnityEngine.XR;
+using UnityEngine.XR.Hands;
 using UnityEngine.XR.Interaction.Toolkit.Inputs;
+
 
 namespace XRIDataCollection
 {
+    [RequireComponent(typeof(HMDControllersInputData))]
+    [RequireComponent(typeof(HandTrackingData))]
     public class DataManager : MonoBehaviour
     {
-        #region Get Data
-
-
+        #region Global Variables
 
         private HMDControllersInputData _inputData;
         private HandTrackingData _handTrackingData;
 
-        private List<Pose> _leftHandPoses;
-        private List<Pose> _rightHandPoses;
-
         private XRInputModalityManager.InputMode inputMode;
 
-        private void HandInput()
-        {
-            inputMode = XRInputModalityManager.currentInputMode.Value;
+        // Number of joints in one Hand, Change if  updated
+        int nbOfJoints = 26/*_handTrackingData._leftHandJointPoses.Count*/;
 
-            // Hand and Controllers
-            if (inputMode == XRInputModalityManager.InputMode.MotionController && (_inputData._leftController.isValid || _inputData._rightController.isValid))
-            {
-                CSVPoseData(_inputData._leftController);
-                CSVPoseData(_inputData._rightController);
-            }
-            if (inputMode == XRInputModalityManager.InputMode.TrackedHand && (_handTrackingData._leftIsTracked || _handTrackingData._rightIsTracked))
-            {
-                //Position, Rotation, Velocity, AngulârVelocity of Hand
-                //Position,Rotation of joints
-            }
-        }
+        #endregion
 
-        ///<summary>
-        /// Add device Data to the CSV file 
-        ///</summary>
-        private void CSVPoseData(InputDevice inputDevice)
-        {
-            //Position, Rotation, Velocity, AngularVelocity of Hand
+        #region Write CSV
 
-            ///////CONTINUER
-            //Position,Rotation of joints
-            ////CONTINUER
-        }
-
-        /// <summary>
-        /// Get Device Data
-        /// calls CSVPoseData to print on file
-        /// </summary>
-        private void GetDeviceData()
-        {
-
-        }
-
+        #region Create Header
 
         private List<string> poseLabels = new List<string>{
-            "Position X","Position Y","Position Z",
-            "Rotation X","Rotation Y","Rotation Z","Rotation W"};
+            "PositionX","PositionY","PositionZ",
+            "RotationX","RotationY","RotationZ","RotationW"};
 
         private string header = string.Empty;
         //Adds List of labels for pose to header (example : label = LeftHand -> Add ("leftHand position X, leftHand position Y, ..., leftHand Rotation W") to header )  
         private void DataLabelPose(string label)
         {
-            foreach(string poseLabel in poseLabels)
-                header += label +" "+poseLabel+",";
+            foreach (string poseLabel in poseLabels)
+                header += label + "_" + poseLabel + ",";
         }
 
+        private List<string> velocityLabels = new List<string>{
+            "VelocityX","VelocityY","VelocityZ"};
+        private void DataLabelVelocity(string label)
+        {
+            foreach (string velocityLabel in velocityLabels)
+                header += label + "_" + velocityLabel + ",";
+        }
+
+        // Write the Header for the CSV file, the order should always be the same as well as the number of data per row
+        private void Header()
+        {
+            // TimeStamp
+            header = "TimeStamp,";
+            // HMD 
+            DataLabelPose("HMD");
+            DataLabelVelocity("HMD");
+            // Controllers
+            DataLabelPose("left_Controller");
+            DataLabelVelocity("left_Controller");
+            DataLabelPose("right_Controller");
+            DataLabelVelocity("right_Controller");
+            // Hands 
+            DataLabelPose("left_Hand");
+            DataLabelPose("right_Hand");
+            // Hand Joints
+            for (int i = 0; i < nbOfJoints; i++)
+            {
+                DataLabelPose("L_"+XRHandJointIDUtility.FromIndex(i).ToString());
+            }
+            for (int i = 0; i < nbOfJoints; i++)
+            {
+                DataLabelPose("R_" + XRHandJointIDUtility.FromIndex(i).ToString());
+            }
+
+        }
 
         #endregion
 
-        #region Write CSV
-        // Liste des poses à exporter
-        public List<Pose> poses = new List<Pose>();
+        #region Create Data Row
 
-        // Directory where CSV files will be stored
-        public string directoryPath = "CSVExports";
+        private string row = string.Empty;
 
-
-        // Generate unique file name using timestamp
-        string fileName = "hand_tracking_data_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
-
-        // Méthode pour exporter les données de poses vers un fichier CSV
-        public void ExportPoseDataToCSV()
+        private void Row()
         {
-            // Vérifier s'il y a des données de pose à exporter
-            if (poses.Count == 0)
+            // Initialize Row
+            row = CurrentTime().ToString() + ",";
+
+            inputMode = XRInputModalityManager.currentInputMode.Value;
+            Debug.Log("input mode "+inputMode);
+            // HMD 
+            Pose hmdPose = new Pose();
+            TryGetValue(_inputData._HMD,CommonUsages.devicePosition,out hmdPose.position);
+            TryGetValue(_inputData._HMD, CommonUsages.deviceRotation, out hmdPose.rotation);
+            DataPose(hmdPose);
+            Vector3 hmdVelocity = new Vector3();
+            TryGetValue(_inputData._HMD, CommonUsages.deviceVelocity, out hmdVelocity);
+            DataVelocity(hmdVelocity);
+
+            // CONTROLLERS
+            if (inputMode == XRInputModalityManager.InputMode.MotionController && (_inputData._leftController.isValid || _inputData._rightController.isValid))
             {
-                Debug.LogWarning("La liste des poses est vide. Aucune donnée à exporter.");
-                return;
+                Pose cPose = new Pose();
+                Vector3 cVelocity = new Vector3();
+
+                // Left
+                TryGetValue(_inputData._leftController, CommonUsages.devicePosition, out cPose.position);// Left Controller Position
+                TryGetValue(_inputData._leftController, CommonUsages.deviceRotation, out cPose.rotation);// Left Controller Rotation
+                DataPose(cPose);
+                TryGetValue(_inputData._HMD, CommonUsages.deviceVelocity, out cVelocity);
+                DataVelocity(cVelocity);
+
+                //Right
+                TryGetValue(_inputData._rightController, CommonUsages.devicePosition, out cPose.position);// Right Controller Position
+                TryGetValue(_inputData._rightController, CommonUsages.deviceRotation, out cPose.rotation);// Right Controller Rotation
+                DataPose(cPose);
+                TryGetValue(_inputData._HMD, CommonUsages.deviceVelocity, out cVelocity);
+                DataVelocity(cVelocity);
             }
-
-            string filePath = Path.Combine(directoryPath, fileName);
-
-            // Ouvrir ou créer le fichier CSV
-            StreamWriter writer = new StreamWriter(filePath);
-
-            // En-tête du fichier CSV
-            writer.WriteLine("Position X,Position Y,Position Z,Rotation X,Rotation Y,Rotation Z,Rotation W");
-
-            // Écrire les données de chaque pose dans le fichier CSV
-            foreach (Pose pose in poses)
+            else
             {
-                writer.WriteLine(
-                    pose.position.x + "," +
+                // Untracked Controller Poses
+                DataPose(Pose.identity);// Left
+                DataVelocity(Vector3.zero);
+                DataPose(Pose.identity);// Right
+                DataVelocity(Vector3.zero);
+            }
+            
+            // HANDS
+            if(inputMode == XRInputModalityManager.InputMode.TrackedHand && (_handTrackingData._leftIsTracked || _handTrackingData._rightIsTracked))
+            {
+                // Hands 
+                DataPose(_handTrackingData._leftHandPose);// Left
+                DataPose(_handTrackingData._rightHandPose);// Right
+                // Hand Joints
+                for (/*Left*/int i = 0; i < nbOfJoints; i++)
+                {
+                    DataPose(_handTrackingData._leftHandJointPoses[i]);
+                }
+                for (/*Rigth*/int i = 0; i < nbOfJoints; i++)
+                {
+                    DataPose(_handTrackingData._rightHandJointPoses[i]);
+                }
+            }
+            else 
+            {
+                // Untracked Hand Poses
+                DataPose(Pose.identity);// Left
+                DataPose(Pose.identity);// Right
+                // Untracked Hand Joint Poses
+                for (/*Left and Right*/int i = 0; i < 2 * nbOfJoints; i++)
+                {
+                    DataPose(Pose.identity);
+                }
+            }
+        }
+
+        private void DataPose(Pose pose)
+        {
+            row += pose.position.x + "," +
                     pose.position.y + "," +
                     pose.position.z + "," +
                     pose.rotation.x + "," +
                     pose.rotation.y + "," +
                     pose.rotation.z + "," +
-                    pose.rotation.w
-                );
+                    pose.rotation.w + ",";
+        }
+
+         
+        private void DataVelocity(Vector3 vect)
+        {
+            row += vect.x + "," +
+                    vect.y + "," +
+                    vect.z + ",";
+        }
+
+
+        // Get value depending on InputFeatureUsage
+        private Vector3 TryGetValue(InputDevice inputDevice, InputFeatureUsage<Vector3> inputFeatureUsage, out Vector3 vect)
+        {
+            if (_inputData._HMD.TryGetFeatureValue(inputFeatureUsage, out vect))
+            {
+                return vect;
             }
+            else { vect = Vector3.zero; return vect; }
+        }
+        private Quaternion TryGetValue(InputDevice inputDevice, InputFeatureUsage<Quaternion> inputFeatureUsage, out Quaternion quat)
+        {
+            if (_inputData._HMD.TryGetFeatureValue(inputFeatureUsage, out quat))
+            {
+                return quat;
+            }
+            else { quat = Quaternion.identity; return quat; }
+        }
 
-            // Fermer le fichier CSV
-            writer.Close();
 
-            Debug.Log("Les données de poses ont été exportées vers " + filePath);
+        #endregion
+
+
+        // Directory where CSV files will be stored
+        public string directoryPath = "CSVExports";
+
+        // Generate unique file name using timestamp
+        string fileName = "XR_Tracking_Data" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
+
+        // File path
+        private string filePath;
+        public StreamWriter writer;
+
+        public void InitFile()
+        {
+            filePath = Path.Combine(directoryPath, fileName);
+
+            // Open or create file for CSV
+            writer = new StreamWriter(filePath);
+
+            Header();
+            writer.WriteLine(header);
+            Debug.Log(header);
+        }
+
+
+        // Export Data to CSV
+        public void ExportToCSV()
+        {
+            Row();
+            // Write Data for each row on CSV file
+            writer.WriteLine(row);
+            Debug.Log(row);
+        }
+
+        void OnApplicationQuit()
+        {
+            // Check if the writer is not null
+            if (writer != null)
+            {
+                // Close the file
+                writer.Close();
+                Debug.Log("File closed.");
+            }
         }
         #endregion
 
@@ -133,11 +252,22 @@ namespace XRIDataCollection
         public static event onUpdate OnUpdate;
         private static void InvokeUpdateEvent(float deltaTime) { if (OnUpdate != null) { OnUpdate(deltaTime); } }
 
+        private void Start()
+        {
+            _inputData = GetComponent<HMDControllersInputData>();
+            _handTrackingData = GetComponent<HandTrackingData>();
+
+            InitFile();
+        }
+
         void Update()
         {
-            InvokeUpdateEvent(CurrentTime());
-            inputMode = XRInputModalityManager.currentInputMode.Value;
+
+            ExportToCSV();
+            //InvokeUpdateEvent(CurrentTime());
+
         }
+
         #endregion
 
         #region Current time since epoch ( 1970-1-1 midnight )
