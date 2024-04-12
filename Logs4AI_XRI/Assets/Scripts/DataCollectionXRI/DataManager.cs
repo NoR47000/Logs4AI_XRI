@@ -250,6 +250,14 @@ namespace XRIDataCollection
         public static event onUpdate OnUpdate;
         private static void InvokeUpdateEvent(float deltaTime) { if (OnUpdate != null) { OnUpdate(deltaTime); } }
 
+        [SerializeField]
+        /// <summary>
+        /// Capture Data every n frames
+        /// </summary>
+        public int _framesToSkip = 0;
+
+        private int framesSkipped = 0;
+
         private void Start()
         {
             _inputData = GetComponent<HMDControllersInputData>();
@@ -260,8 +268,15 @@ namespace XRIDataCollection
 
         void Update()
         {
-
-            ExportToCSV();
+            if(framesSkipped == _framesToSkip)
+            {
+                ExportToCSV();
+                framesSkipped = 0;
+            }
+            else
+            {
+                framesSkipped++;
+            }
             //InvokeUpdateEvent(CurrentTime());
 
         }

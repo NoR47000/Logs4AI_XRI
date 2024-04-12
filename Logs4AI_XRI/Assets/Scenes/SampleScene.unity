@@ -472,6 +472,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   directoryPath: CSVExports/Events Interactions
+  _framesToSkip: 0
 --- !u!114 &154328992
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -485,6 +486,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   directoryPath: CSVExports/XRTracking
+  _framesToSkip: 2
 --- !u!1 &340691374
 GameObject:
   m_ObjectHideFlags: 0

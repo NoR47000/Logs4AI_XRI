@@ -192,6 +192,14 @@ namespace XRIDataCollection
 
         #region Updates
 
+        [SerializeField]
+        /// <summary>
+        /// Capture Data every n frames
+        /// </summary>
+        public int _framesToSkip = 0;
+
+        private int framesSkipped = 0;
+
         // Start is called before the first frame update
         void Start()
         {
@@ -215,7 +223,15 @@ namespace XRIDataCollection
         // Update is called once per frame
         void Update()
         {
-            Row();
+            if (framesSkipped == _framesToSkip)
+            {
+                Row();
+                framesSkipped = 0;
+            }
+            else
+            {
+                framesSkipped++;
+            }
         }
 
         #endregion
