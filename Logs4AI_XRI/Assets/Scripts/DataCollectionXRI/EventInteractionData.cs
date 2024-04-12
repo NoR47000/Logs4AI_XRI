@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -17,11 +18,12 @@ namespace XRIDataCollection
         /// <summary>
         /// Get the events happening in the scene (Button pressing, UI,...)
         /// </summary>
-        private EventSystem _system;
+        private EventSystem _eventSystem;
+        private BaseEventData m_DummyData;
 
         private EventSystem Events()
         {
-            return _system;
+            return _eventSystem;
         }
 
         #endregion
@@ -37,7 +39,7 @@ namespace XRIDataCollection
         private XRInputModalityManager.InputMode inputMode;
 
         // Set in Editor to get interaction layers 
-        public LayerMask layerMask;
+        // public LayerMask layerMask;
 
         protected List<Collider> _leftHitColliders;
         protected List<Collider> _rightHitColliders;
@@ -46,7 +48,7 @@ namespace XRIDataCollection
         private void SphereCollision(Vector3 position, List<Collider> _hitColliders)
         {
             _hitColliders.Clear();
-            Collider[] hitColliders = Physics.OverlapSphere(position, sphereRadius, layerMask);
+            Collider[] hitColliders = Physics.OverlapSphere(position, sphereRadius/*, layerMask*/);
             foreach (Collider collider in hitColliders)
             {
                 _hitColliders.Add(collider);
@@ -120,30 +122,50 @@ namespace XRIDataCollection
             _rightHitColliders = new List<Collider>();
             Events();
             Interactions();
-            if(_leftHitColliders.Count == 0 && _rightHitColliders.Count == 0 ) 
+
+            string currentTime = DataManager.CurrentTime().ToString()+ ",";
+            string eventSystemObject="none,";
+
+            if (_eventSystem.IsPointerOverGameObject())
             {
-                row = DataManager.CurrentTime().ToString() + ",";
-                row += _system.ToShortString() +",";
-                row += "none";
+                if (_eventSystem.currentSelectedGameObject)
+                {
+                    eventSystemObject = _eventSystem.currentSelectedGameObject.name + ",";
+                    //Debug.Log(eventSystemObject);
+                }
+            }
+            else
+            {
+                _eventSystem.SetSelectedGameObject(null, m_DummyData);
+            }
+
+            if (_leftHitColliders.Count == 0 && _rightHitColliders.Count == 0 ) 
+            {
+                row = currentTime;
+
+                row += eventSystemObject;
+
+                row += "none,";
 
                 writer.WriteLine(row);
             }
             else
             {
-                for(int i = 0; i < _leftHitColliders.Count; i++)
+                for (int i = 0; i < _leftHitColliders.Count; i++)
                 {
-                    row = DataManager.CurrentTime().ToString() + ",";
-                    row += _system + ",";
-                    row += _leftHitColliders.ToString();
+                    row = currentTime;
+                    row += eventSystemObject;
+                    row += _leftHitColliders[i].name + ",";
+                    writer.WriteLine(row);
                 }
                 for (int i = 0; i < _rightHitColliders.Count; i++)
                 {
-                    row = DataManager.CurrentTime().ToString() + ",";
-                    row += _system + ",";
-                    row += _rightHitColliders.ToString();
+                    row = currentTime;
+                    row += eventSystemObject;
+                    row += _rightHitColliders[i] + ",";
+                    writer.WriteLine(row);
                 }
 
-                writer.WriteLine(row);
             }
         }
 
@@ -156,7 +178,7 @@ namespace XRIDataCollection
             {
                 // Close the file
                 writer.Close();
-                Debug.Log("File closed.");
+                Debug.Log("XR_Event_interaction File closed.");
             }
         }
         #endregion
@@ -169,9 +191,10 @@ namespace XRIDataCollection
             // Events
             try
             {
-                _system = GameObject.Find("EventSystem").GetComponent<EventSystem>();
+                _eventSystem = GameObject.Find("EventSystem").GetComponent<EventSystem>();
+                m_DummyData = new BaseEventData(_eventSystem);
             }
-            catch(Exception e) { Debug.LogException(e); }
+            catch (Exception e) { Debug.LogException(e); }
 
             // Interactions
             _inputData = GetComponent<HMDControllersInputData>();

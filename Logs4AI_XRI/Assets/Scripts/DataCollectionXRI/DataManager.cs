@@ -236,7 +236,7 @@ namespace XRIDataCollection
             {
                 // Close the file
                 writer.Close();
-                Debug.Log("File closed.");
+                Debug.Log("XR_Data File closed.");
             }
         }
         #endregion
