@@ -18,6 +18,7 @@ namespace XRIDataCollection
                 InitializeInputDevice();
         }
 
+        // Gets HMD and Controllers (hardware) 
         private void InitializeInputDevice()
         {
             if (!_HMD.isValid)

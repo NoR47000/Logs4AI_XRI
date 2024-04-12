@@ -12,6 +12,8 @@ using XRIDataCollection;
 
 namespace XRIDataCollection
 {
+    [RequireComponent(typeof(HMDControllersInputData))]
+    [RequireComponent(typeof(HandTrackingData))]
     public class EventInteractionData : MonoBehaviour
     {
         #region Event Listener
@@ -83,27 +85,6 @@ namespace XRIDataCollection
 
         #region CSV
 
-        // Directory where CSV files will be stored
-        public string directoryPath = "CSVExports/Events Interactions";
-
-        // Generate unique file name using timestamp
-        string fileName = "XR_Event_Interaction_Data_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
-
-        // File path
-        private string filePath;
-        public StreamWriter writer;
-
-        public void InitFile()
-        {
-            filePath = Path.Combine(directoryPath, fileName);
-
-            // Open or create file for CSV
-            writer = new StreamWriter(filePath);
-
-            Header();
-        }
-
-
         #region Create Header
 
         private string header = "TimeStamp,Event,Interaction";
@@ -171,6 +152,29 @@ namespace XRIDataCollection
 
         #endregion
 
+        #region FilePath
+
+        // Directory where CSV files will be stored
+        public string directoryPath = "CSVExports/Events Interactions";
+
+        // Generate unique file name using timestamp
+        string fileName = "XR_Event_Interaction_Data_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
+
+        // File path
+        private string filePath;
+        public StreamWriter writer;
+
+        public void InitFile()
+        {
+            filePath = Path.Combine(directoryPath, fileName);
+
+            // Open or create file for CSV
+            writer = new StreamWriter(filePath);
+
+            Header();
+        }
+
+
         void OnApplicationQuit()
         {
             // Check if the writer is not null
@@ -181,6 +185,9 @@ namespace XRIDataCollection
                 Debug.Log("XR_Event_interaction File closed.");
             }
         }
+
+        #endregion
+
         #endregion
 
         #region Updates

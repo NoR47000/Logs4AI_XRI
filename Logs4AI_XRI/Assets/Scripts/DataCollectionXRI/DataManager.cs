@@ -198,7 +198,7 @@ namespace XRIDataCollection
 
         #endregion
 
-
+        #region FilePath
         // Directory where CSV files will be stored
         public string directoryPath = "CSVExports/XRTracking";
 
@@ -239,6 +239,8 @@ namespace XRIDataCollection
                 Debug.Log("XR_Data File closed.");
             }
         }
+        #endregion
+
         #endregion
 
         #region Updates
