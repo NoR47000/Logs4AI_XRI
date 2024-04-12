@@ -91,7 +91,7 @@ namespace XRIDataCollection
             row = CurrentTime().ToString() + ",";
 
             inputMode = XRInputModalityManager.currentInputMode.Value;
-            Debug.Log("input mode "+inputMode);
+
             // HMD 
             Pose hmdPose = new Pose();
             TryGetValue(_inputData._HMD,CommonUsages.devicePosition,out hmdPose.position);
@@ -170,7 +170,6 @@ namespace XRIDataCollection
                     pose.rotation.w + ",";
         }
 
-         
         private void DataVelocity(Vector3 vect)
         {
             row += vect.x + "," +
@@ -182,7 +181,7 @@ namespace XRIDataCollection
         // Get value depending on InputFeatureUsage
         private Vector3 TryGetValue(InputDevice inputDevice, InputFeatureUsage<Vector3> inputFeatureUsage, out Vector3 vect)
         {
-            if (_inputData._HMD.TryGetFeatureValue(inputFeatureUsage, out vect))
+            if (inputDevice.TryGetFeatureValue(inputFeatureUsage, out vect))
             {
                 return vect;
             }
@@ -190,22 +189,21 @@ namespace XRIDataCollection
         }
         private Quaternion TryGetValue(InputDevice inputDevice, InputFeatureUsage<Quaternion> inputFeatureUsage, out Quaternion quat)
         {
-            if (_inputData._HMD.TryGetFeatureValue(inputFeatureUsage, out quat))
+            if (inputDevice.TryGetFeatureValue(inputFeatureUsage, out quat))
             {
                 return quat;
             }
             else { quat = Quaternion.identity; return quat; }
         }
 
-
         #endregion
 
 
         // Directory where CSV files will be stored
-        public string directoryPath = "CSVExports";
+        public string directoryPath = "CSVExports/XRTracking";
 
         // Generate unique file name using timestamp
-        string fileName = "XR_Tracking_Data" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
+        string fileName = "XR_Tracking_Data_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
 
         // File path
         private string filePath;
@@ -220,7 +218,6 @@ namespace XRIDataCollection
 
             Header();
             writer.WriteLine(header);
-            Debug.Log(header);
         }
 
 
@@ -230,7 +227,6 @@ namespace XRIDataCollection
             Row();
             // Write Data for each row on CSV file
             writer.WriteLine(row);
-            Debug.Log(row);
         }
 
         void OnApplicationQuit()
@@ -273,7 +269,7 @@ namespace XRIDataCollection
         #region Current time since epoch ( 1970-1-1 midnight )
         public static long CurrentTime()
         {
-            return DateTimeOffset.Now.ToUnixTimeSeconds();
+            return DateTimeOffset.Now.ToUnixTimeMilliseconds();
         }
 
         #endregion

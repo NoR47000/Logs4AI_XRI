@@ -7,6 +7,10 @@ using UnityEngine.XR.Hands.Processing;
 
 public class HandTrackingData : MonoBehaviour
 {
+
+    public XRHand _leftHand;
+    public XRHand _rightHand;
+
     public Pose _leftHandPose = Pose.identity;
     public Pose _rightHandPose = Pose.identity;
 
@@ -18,21 +22,21 @@ public class HandTrackingData : MonoBehaviour
 
     private void GetHandPose(XRHandSubsystem subsystem)
     {
-        var leftHand = subsystem.leftHand;
-        var rightHand = subsystem.rightHand;
+        _leftHand = subsystem.leftHand;
+        _rightHand = subsystem.rightHand;
 
-        _leftIsTracked = leftHand.isTracked;
-        _rightIsTracked = rightHand.isTracked;
+        _leftIsTracked = _leftHand.isTracked;
+        _rightIsTracked = _rightHand.isTracked;
 
         if (_leftIsTracked)
         {
-            _leftHandPose = leftHand.rootPose;
+            _leftHandPose = _leftHand.rootPose;
 
             _leftHandJointPoses.Clear();
 
             for (var i = XRHandJointID.BeginMarker.ToIndex(); i < XRHandJointID.EndMarker.ToIndex(); i++)
             {
-                var trackingData = leftHand.GetJoint(XRHandJointIDUtility.FromIndex(i));
+                var trackingData = _leftHand.GetJoint(XRHandJointIDUtility.FromIndex(i));
 
                 if (trackingData.TryGetPose(out Pose pose))
                 {
@@ -43,13 +47,13 @@ public class HandTrackingData : MonoBehaviour
 
         if (_rightIsTracked)
         {
-            _rightHandPose= rightHand.rootPose;
+            _rightHandPose= _rightHand.rootPose;
 
             _rightHandJointPoses.Clear();
 
             for (var i = XRHandJointID.BeginMarker.ToIndex(); i < XRHandJointID.EndMarker.ToIndex(); i++)
             {
-                var trackingData = rightHand.GetJoint(XRHandJointIDUtility.FromIndex(i));
+                var trackingData = _rightHand.GetJoint(XRHandJointIDUtility.FromIndex(i));
 
                 if (trackingData.TryGetPose(out Pose pose))
                 {
