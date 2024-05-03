@@ -7,8 +7,10 @@ public class DataPath : MonoBehaviour
 {
     public static DataPath Instance;
 
-    public string FilePath { get; set; }
-    public StreamWriter FileWriter { get; set; }
+    public string _XRTrackingFilePath { get; set; }
+    public string _eventTrackingFilePath { get; set; }
+    public StreamWriter _XRTrackingFileWriter { get; set; }
+    public StreamWriter _eventTrackingFileWriter { get; set; }
 
     private void Awake()
     {

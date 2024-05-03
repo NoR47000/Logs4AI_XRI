@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using UnityEngine.XR;
-using UnityEngine.XR.Hands;
 using UnityEngine.XR.Interaction.Toolkit.Inputs;
-using XRIDataCollection;
 
 namespace XRIDataCollection
 {
@@ -22,6 +19,8 @@ namespace XRIDataCollection
         /// </summary>
         private EventSystem _eventSystem;
         private BaseEventData m_DummyData;
+
+        private string _sceneName;
 
         private EventSystem Events()
         {
@@ -87,7 +86,7 @@ namespace XRIDataCollection
 
         #region Create Header
 
-        private string header = "TimeStamp,Event,Interaction";
+        private string header = "TimeStamp,Scene,Event,Interaction";
 
         private void Header() { writer.WriteLine(header); }
 
@@ -124,6 +123,8 @@ namespace XRIDataCollection
             {
                 row = currentTime;
 
+                row += _sceneName;
+
                 row += eventSystemObject;
 
                 row += "none,";
@@ -135,6 +136,7 @@ namespace XRIDataCollection
                 for (int i = 0; i < _leftHitColliders.Count; i++)
                 {
                     row = currentTime;
+                    row += _sceneName;
                     row += eventSystemObject;
                     row += _leftHitColliders[i].name + ",";
                     writer.WriteLine(row);
@@ -142,6 +144,7 @@ namespace XRIDataCollection
                 for (int i = 0; i < _rightHitColliders.Count; i++)
                 {
                     row = currentTime;
+                    row += _sceneName;
                     row += eventSystemObject;
                     row += _rightHitColliders[i] + ",";
                     writer.WriteLine(row);
@@ -166,12 +169,20 @@ namespace XRIDataCollection
 
         public void InitFile()
         {
-            filePath = Path.Combine(directoryPath, fileName);
-
-            // Open or create file for CSV
-            writer = new StreamWriter(filePath);
-
-            Header();
+            if(DataPath.Instance._eventTrackingFilePath == null)
+            {
+                filePath = Path.Combine(directoryPath, fileName);
+                DataPath.Instance._eventTrackingFilePath = filePath;
+                // Open or create file for CSV
+                writer = new StreamWriter(filePath);
+                DataPath.Instance._eventTrackingFileWriter = writer;
+                Header();
+            }
+            else
+            {
+                filePath = DataPath.Instance._eventTrackingFilePath;
+                writer = DataPath.Instance._eventTrackingFileWriter;
+            }
         }
 
 
@@ -203,6 +214,9 @@ namespace XRIDataCollection
         // Start is called before the first frame update
         void Start()
         {
+            // Scene
+            _sceneName = SceneManager.GetActiveScene().name +",";
+
             // Events
             try
             {
