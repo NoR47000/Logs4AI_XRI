@@ -11,6 +11,7 @@ using UnityEngine.XR.Interaction.Toolkit.Inputs;
 
 namespace XRIDataCollection
 {
+    [RequireComponent(typeof(EventInteractionData))]
     [RequireComponent(typeof(HMDControllersInputData))]
     [RequireComponent(typeof(HandTrackingData))]
     public class DataManager : MonoBehaviour
@@ -211,13 +212,25 @@ namespace XRIDataCollection
 
         public void InitFile()
         {
-            filePath = Path.Combine(directoryPath, fileName);
+            if(DataPath.Instance.FilePath == null)
+            {
+                filePath = Path.Combine(directoryPath, fileName);
+                DataPath.Instance.FilePath = filePath;
+                // Open or create file for CSV
+                writer = new StreamWriter(filePath);
+                DataPath.Instance.FileWriter = writer;
 
-            // Open or create file for CSV
-            writer = new StreamWriter(filePath);
+                Header();
+                writer.WriteLine(header);
 
-            Header();
-            writer.WriteLine(header);
+                Debug.Log("NEW FILE PATH");
+            }
+            else
+            {
+                Debug.Log("FOUND FILE PATH");
+                filePath = DataPath.Instance.FilePath;
+                writer = DataPath.Instance.FileWriter;
+            }
         }
 
 
