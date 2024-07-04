@@ -1,0 +1,16 @@
+{
+  "name": "com.example.logs4ai_mr",
+  "version": "1.0.0",
+  "displayName": "Logs 4 AI",
+  "description": "A package that gathers headset data for OVR Integration and XR Toolkit.",
+  "unity": "2022.3",
+  "unityRelease": "20f1",
+  "keywords": [
+    "Data Collection",
+    "MR",
+    "VR"
+  ],
+  "author": {
+    "name": "NOR47000"
+  }
+}
