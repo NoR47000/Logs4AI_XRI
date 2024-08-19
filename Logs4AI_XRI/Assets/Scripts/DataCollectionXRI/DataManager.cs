@@ -1,25 +1,30 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Unity.VisualScripting;
-using Unity.XR.CoreUtils;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+#if USE_XR_TOOLKIT
 using UnityEngine.XR;
 using UnityEngine.XR.Hands;
 using UnityEngine.XR.Interaction.Toolkit.Inputs;
+#endif
+#if USE_OVR
+using static OVRPlugin;
+#endif
 
 
 namespace XRIDataCollection
 {
     [RequireComponent(typeof(HMDControllersInputData))]
     [RequireComponent(typeof(HandTrackingData))]
+    [RequireComponent(typeof(EyeTrackingData))]
+
     public class DataManager : MonoBehaviour
     {
         #region Global Variables
 
         private HMDControllersInputData _inputData;
         private HandTrackingData _handTrackingData;
+        private EyeTrackingData _eyeTrackingData;
 
         private XRInputModalityManager.InputMode inputMode;
 
@@ -59,16 +64,24 @@ namespace XRIDataCollection
             header = "TimeStamp,";
             // HMD 
             DataLabelPose("HMD");
+#if USE_XR_TOOLKIT
             DataLabelVelocity("HMD");
+#endif
             // Controllers
             DataLabelPose("left_Controller");
+#if USE_XR_TOOLKIT
             DataLabelVelocity("left_Controller");
+#endif
             DataLabelPose("right_Controller");
+#if USE_XR_TOOLKIT
             DataLabelVelocity("right_Controller");
+#endif
             // Hands 
             DataLabelPose("left_Hand");
             DataLabelPose("right_Hand");
+
             // Hand Joints
+#if USE_XR_TOOLKIT
             for (int i = 0; i < nbOfJoints; i++)
             {
                 DataLabelPose("L_"+XRHandJointIDUtility.FromIndex(i).ToString());
@@ -77,6 +90,23 @@ namespace XRIDataCollection
             {
                 DataLabelPose("R_" + XRHandJointIDUtility.FromIndex(i).ToString());
             }
+
+#elif USE_OVR
+            OVRSkeleton leftHandSkeleton = _handTrackingData._leftHand.GetComponent<OVRSkeleton>();
+
+            nbOfJoints = leftHandSkeleton.Bones.Length
+
+            foreach(OVRSkeleton.BoneId boneId in Enum.GetValues(typeof(OVRSkeleton.BoneId)))
+            {
+                DataLabelPose("L_" + boneId.ToString());
+            }
+            foreach(OVRSkeleton.BoneId boneId in Enum.GetValues(typeof(OVRSkeleton.BoneId)))
+            {
+                DataLabelPose("R_" + boneId.ToString());
+            }
+
+            header += "  EyeGazeOrigin_PositionX,EyeGazeOrigin_PositionY,EyeGazeOrigin_PositionZ, EyegazeDirection_PositionX,EyegazeDirection_PositionY,EyegazeDirection_PositionZ, EyeGaze Object, "
+#endif
 
         }
 
@@ -91,11 +121,25 @@ namespace XRIDataCollection
             // Initialize Row
             row = CurrentTime().ToString() + ",";
 
+#if USE_XR_TOOLKIT
+            XRTDataWrite();
+#elif USE_OVR
+            
+#endif
+
+
+            
+        }
+
+        // Get all data from XRToolkit and write on csv
+        private void XRTDataWrite()
+        {
             inputMode = XRInputModalityManager.currentInputMode.Value;
 
             // HMD 
+
             Pose hmdPose = new Pose();
-            TryGetValue(_inputData._HMD,CommonUsages.devicePosition,out hmdPose.position);
+            TryGetValue(_inputData._HMD, CommonUsages.devicePosition, out hmdPose.position);
             TryGetValue(_inputData._HMD, CommonUsages.deviceRotation, out hmdPose.rotation);
             DataPose(hmdPose);
             Vector3 hmdVelocity = new Vector3();
@@ -130,9 +174,9 @@ namespace XRIDataCollection
                 DataPose(Pose.identity);// Right
                 DataVelocity(Vector3.zero);
             }
-            
+
             // HANDS
-            if(inputMode == XRInputModalityManager.InputMode.TrackedHand && (_handTrackingData._leftIsTracked || _handTrackingData._rightIsTracked))
+            if (inputMode == XRInputModalityManager.InputMode.TrackedHand && (_handTrackingData._leftIsTracked || _handTrackingData._rightIsTracked))
             {
                 // Hands 
                 DataPose(_handTrackingData._leftHandPose);// Left
@@ -147,7 +191,7 @@ namespace XRIDataCollection
                     DataPose(_handTrackingData._rightHandJointPoses[i]);
                 }
             }
-            else 
+            else
             {
                 // Untracked Hand Poses
                 DataPose(Pose.identity);// Left
@@ -159,6 +203,87 @@ namespace XRIDataCollection
                 }
             }
         }
+
+#if USE_OVR
+        // Get all data from OVRPlugin and write on csv
+        private void OVRDataWrite()
+        {
+            hmdPose = _inputData._HMD;
+            DataPose(hmdPose);
+
+            // Check if motion controllers are active
+            bool isLeftControllerActive = OVRInput.IsControllerConnected(OVRInput.Controller.LTouch);
+            bool isRightControllerActive = OVRInput.IsControllerConnected(OVRInput.Controller.RTouch);
+
+            // CONTROLLERS
+            if (isLeftControllerActive || isRightControllerActive)
+            {
+                Pose cPose = new Pose();
+
+                // Left
+                DataPose(_inputData._leftController);
+                //Right
+                DataPose(_inputData._rightController);
+            }
+            else
+            {
+                // Untracked Controller Poses
+                DataPose(Pose.identity);// Left
+                DataPose(Pose.identity);// Right
+            }
+
+            // HANDS
+
+            // Check if hand tracking is active
+            OVRHand leftHand = GetHand(OVRHand.Hand.HandLeft);
+            OVRHand rightHand = GetHand(OVRHand.Hand.HandRight);
+            bool isLeftHandTracked = leftHand != null && leftHand.IsTracked;
+            bool isRightHandTracked = rightHand != null && rightHand.IsTracked;
+
+            if (isLeftHandTracked || isRightHandTracked)
+            {
+                // Hands 
+                DataPose(_handTrackingData._leftHandPose);// Left
+                DataPose(_handTrackingData._rightHandPose);// Right
+                // Hand Joints
+                for (/*Left*/int i = 0; i < nbOfJoints; i++)
+                {
+                    DataPose(_handTrackingData._leftHandJointPoses[i]);
+                }
+                for (/*Rigth*/int i = 0; i < nbOfJoints; i++)
+                {
+                    DataPose(_handTrackingData._rightHandJointPoses[i]);
+                }
+            }
+            else
+            {
+                // Untracked Hand Poses
+                DataPose(Pose.identity);// Left
+                DataPose(Pose.identity);// Right
+                // Untracked Hand Joint Poses
+                for (/*Left and Right*/int i = 0; i < 2 * nbOfJoints; i++)
+                {
+                    DataPose(Pose.identity);
+                }
+            }
+
+            // Eyes
+            bool isEyeTrackingSupported = OVRPlugin.eyeTrackingSupported;
+
+            if(isEyeTrackingSupported)
+            {
+                bool isEyeTrackingEnabled = OVRPlugin.eyeTrackingEnabled;
+                bool isEyeTrackingFunctioning = OVRPlugin.GetEyeTrackingState().Status == OVRPlugin.EyeTrackingState.StatusData.Active;
+
+                if(isEyeTrackingEnabled && isEyeTrackingFunctioning)
+                {
+                    DataVelocity(_eyeTrackingData._gazeray.origin);
+                    DataVelocity(_eyeTrackingData._gazeray.direction);
+                    row += _objectGazedAt + ",";
+                }
+            }
+        }
+#endif
 
         private void DataPose(Pose pose)
         {
@@ -197,15 +322,18 @@ namespace XRIDataCollection
             else { quat = Quaternion.identity; return quat; }
         }
 
-        #endregion
+#endregion
 
         #region FilePath
         // Directory where CSV files will be stored
         public string directoryPath = "CSVExports/XRTracking";
 
+#if USE_XR_TOOLKIT
         // Generate unique file name using timestamp
         string fileName = "XR_Tracking_Data_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
-
+#elif USE_OVR
+        string fileName = "OVR_Tracking_Data_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
+#endif
         // File path
         private string filePath;
         public StreamWriter writer;
@@ -252,9 +380,9 @@ namespace XRIDataCollection
                 Debug.Log("XR_Data File closed.");
             }
         }
-        #endregion
+#endregion
 
-        #endregion
+#endregion
 
         #region Updates
 
@@ -275,6 +403,7 @@ namespace XRIDataCollection
         {
             _inputData = GetComponent<HMDControllersInputData>();
             _handTrackingData = GetComponent<HandTrackingData>();
+            _eyeTrackingData = GetComponent<EyeTrackingData>();
 
             InitFile();
         }

@@ -4,8 +4,13 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+#if USE_XR_TOOLKIT
 using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit.Inputs;
+#endif
+#if USE_OVR
+using static OVRPlugin;
+#endif
 
 namespace XRIDataCollection
 {
@@ -33,11 +38,9 @@ namespace XRIDataCollection
         /// <summary>
         /// Get the virtual object the player is touching
         /// </summary>
-        
+        /// 
         private HMDControllersInputData _inputData;
         private HandTrackingData _handTrackingData;
-
-        private XRInputModalityManager.InputMode inputMode;
 
         // Set in Editor to get interaction layers 
         // public LayerMask layerMask;
@@ -49,15 +52,19 @@ namespace XRIDataCollection
         private void SphereCollision(Vector3 position, List<Collider> _hitColliders)
         {
             _hitColliders.Clear();
-            Collider[] hitColliders = Physics.OverlapSphere(position, sphereRadius/*, layerMask*/);
+            Collider[] hitColliders = Physics.OverlapSphere(position, sphereRadius);
             foreach (Collider collider in hitColliders)
             {
                 _hitColliders.Add(collider);
             }
         }
 
+#if USE_XR_TOOLKIT
+
+        private XRInputModalityManager.InputMode inputMode;
+
         // Represents what virtual object the player touches with his hands or controllers
-        private void Interactions()
+        private void XRTInteractions()
         {
             inputMode = XRInputModalityManager.currentInputMode.Value;
 
@@ -80,6 +87,38 @@ namespace XRIDataCollection
                 SphereCollision(_handTrackingData._rightHandPose.position, _rightHitColliders);
             }
         }
+#endif
+
+#if USE_OVR
+        private void OVRInteractions()
+        {
+            // Check if motion controllers are active
+            bool isLeftControllerActive = OVRInput.IsControllerConnected(OVRInput.Controller.LTouch);
+            bool isRightControllerActive = OVRInput.IsControllerConnected(OVRInput.Controller.RTouch);
+
+            // Check if hand tracking is active
+            OVRHand leftHand = GetHand(OVRHand.Hand.HandLeft);
+            OVRHand rightHand = GetHand(OVRHand.Hand.HandRight);
+            bool isLeftHandTracked = leftHand != null && leftHand.IsTracked;
+            bool isRightHandTracked = rightHand != null && rightHand.IsTracked;
+
+            if (isLeftControllerActive || isRightControllerActive)
+            {
+                // Get left hand position
+                SphereCollision(_inputData._leftController.position, _leftHitColliders);
+
+                // Get Right hand position
+                SphereCollision(_inputData._rightController.position, _rightHitColliders);
+            }
+
+            if (isLeftHandTracked || isRightHandTracked)
+            {
+                SphereCollision(_handTrackingData._leftHandPose.position, _leftHitColliders);
+                SphereCollision(_handTrackingData._rightHandPose.position, _rightHitColliders);
+            }
+        }
+#endif
+
         #endregion
 
         #region CSV
@@ -101,7 +140,11 @@ namespace XRIDataCollection
             _leftHitColliders = new List<Collider>();
             _rightHitColliders = new List<Collider>();
             Events();
-            Interactions();
+#if USE_XR_TOOLKIT
+            XRTInteractions();
+#elif USE_OVR
+            OVRInteractions();
+#endif
 
             string currentTime = DataManager.CurrentTime().ToString()+ ",";
             string eventSystemObject="none,";
@@ -153,15 +196,19 @@ namespace XRIDataCollection
             }
         }
 
-        #endregion
+#endregion
 
         #region FilePath
 
         // Directory where CSV files will be stored
         public string directoryPath = "CSVExports/Events Interactions";
 
+#if USE_XR_TOOLKIT
         // Generate unique file name using timestamp
-        string fileName = "XR_Event_Interaction_Data_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
+        string fileName = "XRT_Event_Interaction_Data_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
+#elif USE_OVR
+        string fileName = "OVR_Event_Interaction_Data_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
+#endif
 
         // File path
         private string filePath;
@@ -197,9 +244,9 @@ namespace XRIDataCollection
             }
         }
 
-        #endregion
+#endregion
 
-        #endregion
+#endregion
 
         #region Updates
 

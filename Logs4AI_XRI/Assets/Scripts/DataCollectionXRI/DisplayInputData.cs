@@ -5,7 +5,9 @@ using XRIDataCollection;
 using UnityEngine.XR;
 using TMPro;
 using UnityEngine.UI;
+#if USE_XR_TOOLKIT
 using UnityEngine.XR.Hands;
+#endif
 
 [RequireComponent(typeof(HMDControllersInputData))]
 [RequireComponent(typeof(HandTrackingData))]
